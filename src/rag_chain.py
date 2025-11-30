@@ -49,8 +49,13 @@ class ChichewaRAGChain:
         self.translator = Translator(model="gpt-4", temperature=0.3)
         self.doc_processor = DocumentProcessor()
         
-        # Load vector store
-        self.vectorstore = self.doc_processor.load_vectorstore()
+        # Load or create vector store
+        try:
+            self.vectorstore = self.doc_processor.load_vectorstore()
+        except FileNotFoundError:
+            # Vector store doesn't exist - create it
+            print("Vector store not found. Creating from documents...")
+            self.vectorstore = self.doc_processor.process_documents(force_recreate=True)
         
         # Initialize LLM for answer generation
         self.llm = ChatOpenAI(

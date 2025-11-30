@@ -89,7 +89,16 @@ def initialize_session_state():
     
     if 'rag_chain' not in st.session_state:
         with st.spinner('Kukhazikitsa chatbot... (Initializing chatbot...)'):
-            st.session_state.rag_chain = ChichewaRAGChain()
+            try:
+                st.session_state.rag_chain = ChichewaRAGChain()
+            except FileNotFoundError:
+                # Vector store doesn't exist - create it on first run
+                st.info("🔄 Kukonza mauthenga kwa nthawi yoyamba... (Processing documents for first time...)")
+                from src.document_processor import DocumentProcessor
+                processor = DocumentProcessor()
+                processor.process_documents(force_recreate=True)
+                st.session_state.rag_chain = ChichewaRAGChain()
+                st.success("✅ Chatbot wokonzeka! (Chatbot ready!)")
     
     if 'rate_limiter' not in st.session_state:
         st.session_state.rate_limiter = RateLimiter()
