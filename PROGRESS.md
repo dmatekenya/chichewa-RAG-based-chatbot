@@ -1,6 +1,10 @@
 # Project Progress Tracker
 
-Last Updated: November 29, 2025
+**Project Status:** ✅ **COMPLETE & DEPLOYED**  
+Last Updated: November 30, 2025
+
+**Live App:** Deployed on Streamlit Community Cloud  
+**Repository:** https://github.com/dmatekenya/chichewa-RAG-based-chatbot
 
 ---
 
@@ -73,182 +77,298 @@ Last Updated: November 29, 2025
 ### Key Features Implemented:
 - Automatic loading of all .docx files from directory
 - Metadata tracking (source filename)
-- Persistent vector store (no need to recreate)
-- Option to force recreation if needed
-- Error handling for missing files
-
 ---
 
-## Phase 3: Translation Layer 🔄 NEXT PHASE
+## Phase 3: Translation Layer ✅ COMPLETE
 
 ### Objective:
 Create a translation module to handle Chichewa ↔ English translation using OpenAI GPT-4.
 
-### Tasks To Do:
+### Tasks Completed:
 
-1. ⏳ Create `src/translator.py` module with:
-   - `Translator` class
+1. ✅ Created `src/translator.py` module with:
+   - `Translator` class using GPT-4
    - Method: `translate_to_english(chichewa_text: str) -> str`
    - Method: `translate_to_chichewa(english_text: str) -> str`
-   - Use GPT-4 with zero-shot prompts
-   - Clear system prompts for translation
+   - Method: `translate_with_context()` for domain-specific translation
+   - Zero-shot translation with clear system prompts
+   - Temperature = 0.3 for consistent results
 
-2. ⏳ Implement translation prompts:
-   ```python
-   # Chichewa → English
-   system_prompt = "You are a translator. Translate the following text from Chichewa to English. Maintain the original meaning and tone."
-   
-   # English → Chichewa
-   system_prompt = "You are a translator. Translate the following text from English to Chichewa. Maintain the original meaning and tone."
-   ```
+2. ✅ Implemented translation prompts:
+   - Chichewa → English: "You are a professional translator..."
+   - English → Chichewa: "...Use natural, conversational Chichewa..."
+   - Clear instructions to maintain meaning and tone
 
-3. ⏳ Test translation with sample phrases:
-   - "Kodi nkhani iyi ikukhudza chiyani?" → "What is this article about?"
-   - "Nanga zochitika zinali bwanji?" → "What happened?"
-   - Test reverse translation quality
+3. ✅ Tested translation with sample phrases:
+   - "Kodi nkhani iyi ikukhudza chiyani?" → "What is this story about?" ✓
+   - "Moni, muli bwanji?" → "Hello, how are you?" ✓
+   - "How many people were affected?" → "Anthu angati anakhudzidwa?" ✓
+   - Round-trip translation maintains meaning ✓
 
-4. ⏳ Add error handling:
-   - Handle API errors
-   - Fallback for failed translations
-   - Logging for debugging
+4. ✅ Added error handling:
+   - API error catching
+   - Fallback messages for failed translations
+   - Graceful degradation
 
-### Files to Create:
-- `src/translator.py`
-- Test script or add tests to module
+### Files Created:
+- `src/translator.py` (complete with tests)
 
-### Implementation Notes:
-- Start with GPT-4 for best quality
-- Use zero-shot (no examples needed initially)
-- If quality insufficient, add few-shot examples or glossary
-- Keep translation prompts simple and clear
+### Test Results:
+All translation tests passed successfully. GPT-4 provides high-quality Chichewa translations without requiring few-shot examples or glossaries.
 
 ---
 
-## Phase 4: RAG Chain Implementation ⏳ PENDING
+## Phase 4: RAG Chain Implementation ✅ COMPLETE
 
 ### Objective:
-Build the complete RAG pipeline with translation integration.
+Build the complete RAG pipeline with translation integration and smart query handling.
 
-### Tasks To Do:
+### Tasks Completed:
 
-1. ⏳ Create `src/rag_chain.py` module with:
+1. ✅ Created `src/rag_chain.py` module with:
    - `ChichewaRAGChain` class
    - Integration of translator + document retriever + LLM
+   - Smart query classification system
 
-2. ⏳ Implement query flow:
+2. ✅ Implemented complete query flow:
    ```python
-   def answer_query(chichewa_query: str) -> str:
+   def answer_query(chichewa_query: str) -> dict:
        # 1. Translate query to English
        english_query = translator.translate_to_english(chichewa_query)
        
-       # 2. Retrieve relevant chunks
-       docs = vectorstore.similarity_search(english_query, k=3)
+       # 2. Classify query type (greeting/out-of-scope/relevant)
+       query_type = classify_query(english_query)
        
-       # 3. Generate answer in English
-       english_answer = llm.generate(context=docs, query=english_query)
+       # 3a. Handle greetings
+       if greeting: return friendly_welcome_in_chichewa()
        
-       # 4. Translate answer to Chichewa
-       chichewa_answer = translator.translate_to_chichewa(english_answer)
+       # 3b. Handle out-of-scope queries
+       if out_of_scope: return polite_redirect_in_chichewa()
        
-       return chichewa_answer
+       # 3c. Handle relevant queries (full RAG)
+       if relevant:
+           # Retrieve relevant chunks
+           docs = vectorstore.similarity_search(english_query, k=3)
+           
+           # Generate answer in English with context
+           english_answer = llm.generate(context=docs, query=english_query)
+           
+           # Translate answer to Chichewa
+           chichewa_answer = translator.translate_to_chichewa(english_answer)
+           
+           return {answer, sources, metadata}
    ```
 
-3. ⏳ Add conversation memory:
-   - Store chat history
-   - Maintain context across turns
-   - Use `ConversationBufferMemory` or similar
+3. ✅ Added query classification:
+   - GPT-4 classifier with temperature=0.0
+   - Categories: "greeting", "out_of_scope", "relevant"
+   - Consistent classification across queries
 
-4. ⏳ Add source citation:
-   - Track which documents were used
-   - Include metadata in response
+4. ✅ Implemented graceful handling:
+   - Greetings: Warm welcome + prompt about topics
+   - Out-of-scope (weather, math, etc.): Polite decline + redirect
+   - Relevant: Full RAG pipeline with sources
 
-5. ⏳ Test end-to-end flow:
-   - Sample Chichewa questions
-   - Verify answer quality
-   - Check source attribution
+5. ✅ Added source citation:
+   - Tracks which documents were used
+   - Returns source filenames
+   - Metadata available for UI display
 
-### Files to Create:
-- `src/rag_chain.py`
+6. ✅ Tested end-to-end flow:
+   - "Moni, muli bwanji?" → Greeting handled ✓
+   - "Kwacha bwanji lero?" → Out-of-scope handled ✓
+   - "Kodi 2 + 2 ndi zingati?" → Out-of-scope handled ✓
+   - "Kodi nkhani iyi ikukhudza chiyani?" → RAG pipeline works ✓
+   - "Ndiuzeni za masewera" → Returns sports info with sources ✓
+
+### Files Created:
+- `src/rag_chain.py` (complete with query classification)
+
+### Key Achievement:
+The chatbot gracefully handles ALL query types without crashing, providing helpful responses in Chichewa for every scenario.
 
 ---
 
-## Phase 5: User Interface ⏳ PENDING
+## Phase 5: User Interface ✅ COMPLETE
 
 ### Objective:
-Create a Streamlit web app for chat interface.
+Create a Streamlit web app with chat interface and rate limiting.
 
-### Tasks To Do:
+### Tasks Completed:
 
-1. ⏳ Create `app.py` with Streamlit:
-   - Chat interface
+1. ✅ Created `app.py` with Streamlit:
+   - Full chat interface
    - Message history display
    - Input box for Chichewa queries
-
-2. ⏳ Features to implement:
-   - Display conversation history
-   - Show source documents used
-   - Clear chat button
    - Session state management
 
-3. ⏳ UI elements:
-   - Title: "Chichewa News Chatbot"
-   - Sidebar: Settings, about info
-   - Main area: Chat messages
-   - Input: Text box + send button
-
-4. ⏳ Run and test:
-   ```bash
-   streamlit run app.py
-   ```
-
-### Files to Create:
-- `app.py`
-
----
-
-## Phase 6: Quality Enhancements ⏳ PENDING
-
-### Optional Improvements:
-
-1. ⏳ Add language detection:
-   - Auto-detect if user inputs English vs Chichewa
-   - Handle mixed-language inputs
-
-2. ⏳ Improve translation:
-   - Add domain-specific glossary
-   - Few-shot examples for better quality
-   - Cache translations to reduce API calls
-
-3. ⏳ LangSmith integration:
-   - Already configured in `.env`
-   - Add trace logging
-   - Monitor translation quality
-
-4. ⏳ Performance optimization:
-   - Cache frequent queries
-   - Batch translations if possible
-   - Reduce API costs
-
-5. ⏳ Better error handling:
-   - Graceful degradation
+2. ✅ Implemented rate limiting:
+   - `RateLimiter` class
+   - Session limit: 20 queries maximum
+   - Hourly limit: 10 queries per hour per user
    - User-friendly error messages in Chichewa
+   - Real-time tracking of usage
+
+3. ✅ Built UI features:
+   - **Title:** "Chichewa News Chatbot"
+   - **Sidebar:** 
+     - About section (bilingual)
+     - Usage statistics dashboard
+     - Clear chat button
+     - Built with info
+   - **Main area:** 
+     - Chat message history
+     - Loading spinners with Chichewa text
+     - Source attribution in expandable sections
+   - **Input:** Text box with Chichewa placeholder
+
+4. ✅ Added error handling:
+   - Graceful API error messages
+   - User-friendly error text in Chichewa
+   - Technical details for debugging
+
+5. ✅ Created deployment files:
+   - `.streamlit/secrets.toml.example` - Template for API keys
+   - `run_app.sh` - Helper script for local testing
+   - Updated `.gitignore` to exclude secrets
+
+6. ✅ Tested locally:
+   - App runs at `http://localhost:8501`
+   - All features working
+   - Rate limiting functional
+   - Chichewa interactions smooth
+
+### Files Created:
+- `app.py` - Main Streamlit application
+- `run_app.sh` - Local testing helper
+- `.streamlit/secrets.toml.example` - Secrets template
+- Updated `.gitignore`
+
+### User Experience:
+- Clean, bilingual interface
+- Real-time usage tracking
+- Smooth chat experience
+- Protected against abuse with rate limiting
 
 ---
 
-## How to Resume Development
+## Phase 6: Deployment ✅ COMPLETE
 
-### Quick Start:
-```bash
-cd /Users/dmatekenya/git-repos/rag-demo-chichewa
-source venv/bin/activate
+### Objective:
+Deploy to Streamlit Community Cloud and ensure automatic setup.
+
+### Tasks Completed:
+
+1. ✅ Created comprehensive deployment documentation:
+   - `DEPLOYMENT.md` with step-by-step instructions
+   - Streamlit Cloud setup guide
+   - Local testing procedures
+   - Security best practices
+   - Cost monitoring guidance
+   - Troubleshooting section
+
+2. ✅ Fixed deployment issues:
+   - Vector store auto-creation on first run
+   - Updated `app.py` to handle missing vector store
+   - Updated `src/rag_chain.py` to create vectorstore if needed
+   - Documents included in GitHub repo
+
+3. ✅ Configured auto-deployment:
+   - GitHub repository connected to Streamlit Cloud
+   - Auto-redeploy on push to main branch
+   - Secrets configured in Streamlit Cloud dashboard
+   - Vector store persists between restarts
+
+4. ✅ Security implementation:
+   - API keys stored as Streamlit secrets
+   - `.streamlit/secrets.toml` in `.gitignore`
+   - No sensitive data in GitHub repo
+   - Rate limiting protects against abuse
+
+5. ✅ Successfully deployed:
+   - App live on Streamlit Community Cloud
+   - Public URL accessible
+   - No API keys required from users
+   - First-run document processing working
+   - Subsequent loads fast
+
+### Files Created/Updated:
+- `DEPLOYMENT.md` - Complete deployment guide
+- `app.py` - Auto-creates vector store if missing
+- `src/rag_chain.py` - Graceful vector store handling
+- `.gitignore` - Excludes secrets
+
+### Deployment Features:
+- **Zero-config:** Auto-setup on first deployment
+- **Auto-deploy:** Updates when GitHub changes
+- **Persistent:** Vector store saved between restarts
+- **Secure:** API keys protected
+- **Cost-protected:** Rate limiting prevents abuse
+
+### Cost Estimates:
+- ~$0.012 per query
+- With 10 queries/hour/user limit
+- Manageable costs with built-in protection
+
+---
+
+## Summary: All Phases Complete! 🎉
+
+### What We Built:
+
+**A fully functional Chichewa-English RAG chatbot that:**
+- ✅ Reads English newspaper articles
+- ✅ Answers questions in Chichewa
+- ✅ Handles greetings and out-of-scope queries gracefully
+- ✅ Provides source attribution
+- ✅ Has rate limiting for cost protection
+- ✅ Is deployed and publicly accessible
+- ✅ Auto-updates from GitHub
+
+### Technology Stack:
+- **Backend:** Python 3.13, LangChain, OpenAI GPT-4
+- **Vector Store:** ChromaDB with OpenAI embeddings
+- **Frontend:** Streamlit
+- **Hosting:** Streamlit Community Cloud
+- **Documents:** 5 English newspaper articles (.docx)
+
+### Key Innovations:
+1. **Smart Query Classification** - Handles any type of query
+2. **Zero-shot Translation** - No training data required
+3. **Auto-deployment** - Creates vector store on first run
+4. **Rate Limiting** - Protects against API cost overruns
+5. **Bilingual UX** - Chichewa & English throughout
+
+### Files Structure:
+```
+rag-demo-chichewa/
+├── app.py                      # Streamlit UI (main app)
+├── run_app.sh                  # Local testing script
+├── requirements.txt            # Python dependencies
+├── README.md                   # Project overview (updated)
+├── PROGRESS.md                 # This file
+├── DEPLOYMENT.md               # Deployment guide
+├── .env                        # Local environment variables
+├── .gitignore                  # Git exclusions
+├── data/
+│   ├── docs/                   # 5 English .docx files
+│   └── vectorstore/            # ChromaDB (auto-created)
+├── src/
+│   ├── document_processor.py   # Document loading & embeddings
+│   ├── translator.py           # Chichewa ↔ English translation
+│   └── rag_chain.py            # Complete RAG pipeline
+└── .streamlit/
+    ├── secrets.toml            # API keys (local, not in git)
+    └── secrets.toml.example    # Template for secrets
 ```
 
-### Verify Setup:
-```bash
-# Test document processor
-python src/document_processor.py
+---
 
-# Should show: Vector store loaded, retrieval working
+## Future Enhancement Ideas
+
+While the project is complete, these optional features could be added:
+
+### Phase 7 (Optional): Advanced Features
 ```
 
 ### Start Phase 3:

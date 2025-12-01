@@ -28,22 +28,145 @@ Response (Chichewa)
 ## ✅ Completed Phases
 
 ### Phase 1: Environment Setup ✓
-- Created Python 3.13 virtual environment (`venv/`)
-- Installed all dependencies (LangChain, OpenAI, ChromaDB, Streamlit, etc.)
-- Set up project structure with `src/` and `data/` directories
-- Created `.gitignore` for Python, vector store, and environment files
+**Status:** Complete  
+**Files Created:**
+- `requirements.txt` - Python dependencies
+- `.gitignore` - Excludes venv, secrets, vector store
+- Virtual environment with Python 3.13
+
+**What it does:**
+- Sets up isolated Python environment
+- Installs LangChain, OpenAI, ChromaDB, Streamlit, python-docx
+- Configures project structure
 
 ### Phase 2: Document Processing Pipeline ✓
-- Created `src/document_processor.py` module
-- Loaded 5 English newspaper articles from `data/docs/`:
-  - sports-1.docx
-  - Constitutions on paper.docx
-  - 2 Shoprite shops-close.docx
-  - Jane-Ansah.docx
-  - celebrity-leaks.docx
-- Split documents into 32 chunks (size: 1000 chars, overlap: 200)
-- Created ChromaDB vector store with OpenAI embeddings
-- Successfully tested document retrieval
+**Status:** Complete  
+**Files Created:**
+- `src/document_processor.py` - Document loading and vector store creation
+
+**What it does:**
+## 🎉 Project Complete!
+
+All phases have been successfully completed and the chatbot is deployed!
+
+### Optional Future Enhancements
+
+These features could be added in the future:
+
+1. **Conversation Memory**
+   - Multi-turn conversation tracking
+   - Context awareness across questions
+   - User session history
+
+2. **Enhanced Translation**
+   - Domain-specific glossary for news terms
+   - Few-shot examples for better quality
+   - Translation caching to reduce API costs
+
+3. **Advanced Features**
+   - Language auto-detection (Chichewa vs English)
+   - Support for mixed-language queries
+   - Voice input/output in Chichewa
+
+4. **Performance Optimization**
+   - Query result caching
+   - Faster model options (GPT-3.5-turbo)
+   - Batch processing for efficiency
+
+5. **Analytics**
+   - Usage analytics dashboard
+   - Popular query tracking
+   - Translation quality feedback
+
+6. **Content Management**
+   - Admin interface to add/remove documents
+   - Automatic document updates
+   - Multi-language document support chiyani?" → "What is this story about?"
+- ✅ "How many people were affected?" → "Anthu angati anakhudzidwa?"
+- ✅ Round-trip translation maintains meaning
+
+### Phase 4: RAG Chain Implementation ✓
+**Status:** Complete  
+**Files Created:**
+- `src/rag_chain.py` - Complete RAG pipeline with smart query handling
+
+**What it does:**
+1. **Query Classification** - Categorizes queries into:
+   - Greetings ("Moni, muli bwanji?") → Friendly welcome
+   - Out-of-scope ("Kwacha bwanji lero?") → Polite redirect
+   - Relevant ("Ndiuzeni za masewera") → Full RAG pipeline
+
+2. **Complete Flow for Relevant Queries:**
+   - Translate Chichewa query → English
+   - Retrieve top 3 relevant document chunks
+   - Generate answer using GPT-4 with context
+   - Translate answer back to Chichewa
+   - Return with source attribution
+
+3. **Graceful Error Handling:**
+   - Doesn't crash on out-of-scope questions
+   - Provides helpful responses in Chichewa
+   - Guides users to ask relevant questions
+
+**Test results:**
+- ✅ Greetings handled with prompts about available topics
+- ✅ Weather/math questions politely declined with redirect
+- ✅ News queries answered accurately with sources
+- ✅ All responses in natural Chichewa
+
+### Phase 5: User Interface (Streamlit App) ✓
+**Status:** Complete  
+**Files Created:**
+- `app.py` - Main Streamlit application
+## 📊 Project Status
+
+- ✅ Phase 1: Environment Setup
+- ✅ Phase 2: Document Processing Pipeline
+- ✅ Phase 3: Translation Layer (Chichewa ↔ English)
+- ✅ Phase 4: RAG Chain Implementation
+- ✅ Phase 5: Streamlit User Interface
+- ✅ Phase 6: Deployment to Streamlit Cloud
+
+**🎉 Project Status: COMPLETE & DEPLOYED**
+  - 10 queries per hour per user
+  - User-friendly messages in Chichewa when limits reached
+- **Usage Dashboard:** Real-time stats in sidebar
+  - Session query count
+  - Hourly usage
+  - Session duration
+- **Source Attribution:** Shows which documents were used
+- **Clear Chat:** Reset conversation history
+- **Error Handling:** Graceful error messages in Chichewa
+- **Bilingual UI:** Labels in both Chichewa and English
+
+**Security features:**
+- API keys stored as secrets (not in code)
+- `.streamlit/secrets.toml` in `.gitignore`
+- Ready for Streamlit Cloud deployment
+
+### Phase 6: Deployment ✓
+**Status:** Complete (Deployed to Streamlit Community Cloud)  
+**Files Updated:**
+- `app.py` - Auto-creates vector store if missing
+- `src/rag_chain.py` - Handles missing vector store gracefully
+- `DEPLOYMENT.md` - Step-by-step deployment instructions
+
+**What it does:**
+- **Auto-deployment:** Streamlit Cloud watches GitHub repo
+- **Automatic Setup:** Creates vector store on first run
+- **Persistent Storage:** Vector store saved between restarts
+- **Zero-config:** No manual setup needed after secrets configured
+
+**Deployment fixes:**
+- Vector store auto-created from documents on first deployment
+- Documents included in GitHub repo
+- Secrets configured in Streamlit Cloud dashboard
+
+**Live App:**
+- Hosted on Streamlit Community Cloud
+- Public URL accessible to anyone
+- No API keys required from users
+- Rate limiting protects against abuse
 
 ## 🚀 Next Steps
 
@@ -91,21 +214,75 @@ rag-demo-chichewa/
 │   └── document_processor.py   # Document loading & vector store
 └── app.py                      # (To be created) Streamlit UI
 ```
+## 🚀 How to Use
 
-## 🛠️ Technology Stack
-
-- **Python**: 3.13
-- **LLM**: OpenAI GPT-4 / GPT-3.5-turbo
-- **Embeddings**: OpenAI text-embedding-3-small
-- **Vector Store**: ChromaDB
-- **Framework**: LangChain
-- **UI**: Streamlit
-- **Document Parsing**: python-docx
-
-## 🚦 How to Resume Work
+### Run Locally
 
 1. **Activate virtual environment**:
    ```bash
+   cd /Users/dmatekenya/git-repos/rag-demo-chichewa
+   source venv/bin/activate
+   ```
+
+2. **Run Streamlit app**:
+   ```bash
+   streamlit run app.py
+   # Or use the helper script:
+   ./run_app.sh
+   ```
+
+3. **Access the app**:
+   - Open browser to `http://localhost:8501`
+   - Start chatting in Chichewa!
+
+### Test Individual Components
+
+```bash
+# Test document processing
+## 📝 Important Notes
+
+### Local Development
+- Vector store created automatically on first run
+- Documents in `data/docs/` are processed into embeddings
+- All API keys stored in `.env` and `.streamlit/secrets.toml` (not in git)
+- LangSmith tracing enabled for debugging
+
+### Deployment
+- Vector store auto-created on Streamlit Cloud first run
+- Takes ~30-60 seconds on first deployment to process documents
+- Subsequent restarts are fast (vector store persists)
+- Auto-redeploys when you push to GitHub
+
+### Rate Limiting
+- **Session limit:** 20 queries maximum
+- **Hourly limit:** 10 queries per hour per user
+- Protects against excessive API costs
+- User-friendly messages in Chichewa when limits reached
+
+### Cost Monitoring
+- Monitor usage at: https://platform.openai.com/usage
+- Estimated cost: ~$0.012 per query
+- Set spending limits in OpenAI dashboard
+- Consider stricter rate limits if costs are high
+
+### Security
+- ✅ API keys never exposed to users
+- ✅ Secrets in `.gitignore`
+- ✅ Environment variables used for all sensitive data
+- ✅ Rate limiting prevents abuse
+python src/rag_chain.py
+```
+
+### Deploy to Streamlit Cloud
+
+See detailed instructions in `DEPLOYMENT.md`
+
+Quick steps:
+1. Push code to GitHub ✅ (already done)
+2. Go to https://share.streamlit.io
+3. Connect your repo
+4. Add API keys in secrets
+5. Deploy!
    cd /Users/dmatekenya/git-repos/rag-demo-chichewa
    source venv/bin/activate
    ```
