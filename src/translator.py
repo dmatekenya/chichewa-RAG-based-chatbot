@@ -7,7 +7,7 @@ Uses zero-shot translation with clear system prompts.
 
 from typing import Optional
 from langchain_openai import ChatOpenAI
-from langchain.schema import HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from dotenv import load_dotenv
 import os
 

@@ -1,7 +1,7 @@
 """
 Streamlit App for Chichewa RAG Chatbot
 
-A chat interface for asking questions in Chichewa about English news articles.
+A chat interface for asking questions in Chichewa about bank products and services.
 Includes rate limiting to prevent API abuse.
 """
 
@@ -130,8 +130,8 @@ def main():
     
     # Page configuration
     st.set_page_config(
-        page_title="Chichewa News Chatbot",
-        page_icon="💬",
+        page_title="Chichewa Bank Products Chatbot",
+        page_icon="🏦",
         layout="wide",
         initial_sidebar_state="expanded"
     )
@@ -144,27 +144,27 @@ def main():
         st.title("ℹ️ Zambiri (About)")
         
         st.markdown("""
-        ### Chichewa News Chatbot
+        ### Chichewa Bank Products Chatbot
         
-        Muli bwanji! Ndine chatbot yemwe amathandiza kuyankha mafunso pa nkhani za mauthenga mu Chichewa.
+        Muli bwanji! Ndine chatbot yemwe amathandiza kuyankha mafunso pa nkhani za ma produkti a banki mu Chichewa.
         
         **Mukhoza kundifunsa:**
-        - Za zochitika mu nkhani
-        - Za anthu mu mauthenga
-        - Za masewera
-        - Za ndale
-        - Nkhani zina zonse
+        - Za ma akaunti osiyanasiyana
+        - Za ngongole (loans)
+        - Za ma kadi a banki
+        - Za malipiro ndi ma transifolo
+        - Za ndondomeko za banki
         
         ---
         
-        Hello! I'm a chatbot that helps answer questions about news articles in Chichewa.
+        Hello! I'm a chatbot that helps answer questions about bank products and services in Chichewa.
         
         **You can ask me about:**
-        - Events in the news
-        - People in the articles
-        - Sports
-        - Politics
-        - Other news topics
+        - Different types of accounts
+        - Loans and credit
+        - Bank cards
+        - Payments and transfers
+        - Banking services
         """)
         
         # Usage statistics
@@ -198,8 +198,8 @@ def main():
         st.caption("Built with LangChain + OpenAI + Streamlit")
     
     # Main chat interface
-    st.title("💬 Chichewa News Chatbot")
-    st.caption("Funsani mafunso mu Chichewa pa nkhani za mauthenga (Ask questions in Chichewa about news articles)")
+    st.title("🏦 Chichewa Bank Products Chatbot")
+    st.caption("Funsani mafunso mu Chichewa pa nkhani za ma produkti a banki (Ask questions in Chichewa about bank products)")
     
     # Display chat history
     for message in st.session_state.messages:
@@ -210,7 +210,7 @@ def main():
         )
     
     # Chat input
-    if prompt := st.chat_input("Lembani funso lanu mu Chichewa... (Type your question in Chichewa...)"):
+    if prompt := st.chat_input("Funsani za ma produkti a banki mu Chichewa... (Ask about bank products in Chichewa...)"):
         
         # Check rate limit
         can_query, limit_message = st.session_state.rate_limiter.can_make_query()
@@ -277,23 +277,25 @@ def main():
             st.markdown("""
             👋 **Moni! Muli bwanji?**
             
-            Ndine chatbot yemwe amathandiza pa nkhani za mauthenga. Funsani mafunso mu Chichewa!
+            Ndine chatbot yemwe amathandiza pa nkhani za ma produkti a banki. Funsani mafunso mu Chichewa!
             
             **Zitsanzo za mafunso:**
-            - "Kodi nkhani iyi ikukhudza chiyani?"
-            - "Ndiuzeni za masewera"
-            - "Anthu angati anakhudzidwa?"
+            - "Kodi muli ndi ma akaunti a mtundu wanji?"
+            - "Ndiuzeni za ngongole za nyumba"
+            - "Kodi mortgage loan ndi chiyani?"
+            - "Ndiuzeni za savings account"
             
             ---
             
             👋 **Hello! How are you?**
             
-            I'm a chatbot that helps with news articles. Ask questions in Chichewa!
+            I'm a chatbot that helps with bank products and services. Ask questions in Chichewa!
             
             **Example questions:**
-            - "What is this story about?"
-            - "Tell me about sports"
-            - "How many people were affected?"
+            - "What types of accounts do you have?"
+            - "Tell me about home loans"
+            - "What is a mortgage loan?"
+            - "Tell me about savings accounts"
             """)
 
 

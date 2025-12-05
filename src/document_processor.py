@@ -8,9 +8,10 @@ splitting them into chunks, and creating a vector store for RAG.
 import os
 from pathlib import Path
 from typing import List
-from docx import Document
-from langchain.schema import Document as LangChainDocument
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from docx import Document as DocxDocument
+from pypdf import PdfReader
+from langchain_core.documents import Document as LangChainDocument
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
 from dotenv import load_dotenv
@@ -24,7 +25,7 @@ class DocumentProcessor:
     
     def __init__(
         self,
-        docs_dir: str = "data/docs",
+        docs_dir: str = "data/docs/national-bank-products",
         vectorstore_dir: str = "data/vectorstore",
         chunk_size: int = 1000,
         chunk_overlap: int = 200
@@ -68,7 +69,7 @@ class DocumentProcessor:
         Returns:
             Extracted text content
         """
-        doc = Document(file_path)
+        doc = DocxDocument(file_path)
         full_text = []
         
         for paragraph in doc.paragraphs:
@@ -77,9 +78,29 @@ class DocumentProcessor:
         
         return "\n\n".join(full_text)
     
+    def load_pdf(self, file_path: Path) -> str:
+        """
+        Extract text from a PDF file
+        
+        Args:
+            file_path: Path to the PDF file
+            
+        Returns:
+            Extracted text content
+        """
+        reader = PdfReader(file_path)
+        full_text = []
+        
+        for page in reader.pages:
+            text = page.extract_text()
+            if text.strip():
+                full_text.append(text)
+        
+        return "\n\n".join(full_text)
+    
     def load_all_documents(self) -> List[LangChainDocument]:
         """
-        Load all .docx files from the documents directory
+        Load all .docx and .pdf files from the documents directory
         
         Returns:
             List of LangChain Document objects
@@ -89,24 +110,33 @@ class DocumentProcessor:
         if not self.docs_dir.exists():
             raise FileNotFoundError(f"Documents directory not found: {self.docs_dir}")
         
+        # Get both PDF and DOCX files
+        pdf_files = list(self.docs_dir.glob("*.pdf"))
         docx_files = list(self.docs_dir.glob("*.docx"))
+        all_files = pdf_files + docx_files
         
-        if not docx_files:
-            raise FileNotFoundError(f"No .docx files found in {self.docs_dir}")
+        if not all_files:
+            raise FileNotFoundError(f"No .pdf or .docx files found in {self.docs_dir}")
         
-        print(f"Found {len(docx_files)} document(s) to process...")
+        print(f"Found {len(all_files)} document(s) to process ({len(pdf_files)} PDFs, {len(docx_files)} DOCX)...")
         
-        for file_path in docx_files:
+        for file_path in all_files:
             try:
                 print(f"Loading: {file_path.name}")
-                text_content = self.load_docx(file_path)
+                
+                # Choose loader based on file extension
+                if file_path.suffix.lower() == '.pdf':
+                    text_content = self.load_pdf(file_path)
+                else:
+                    text_content = self.load_docx(file_path)
                 
                 # Create LangChain Document with metadata
                 doc = LangChainDocument(
                     page_content=text_content,
                     metadata={
                         "source": file_path.name,
-                        "file_path": str(file_path)
+                        "file_path": str(file_path),
+                        "file_type": file_path.suffix.lower()
                     }
                 )
                 documents.append(doc)

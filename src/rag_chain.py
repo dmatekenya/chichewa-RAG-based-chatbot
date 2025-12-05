@@ -7,8 +7,8 @@ a complete Chichewa-English RAG chatbot with smart query handling.
 
 from typing import Dict, List, Optional, Tuple
 from langchain_openai import ChatOpenAI
-from langchain.schema import HumanMessage, SystemMessage
-from langchain.prompts import PromptTemplate
+from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.prompts import PromptTemplate
 from dotenv import load_dotenv
 import os
 import sys
