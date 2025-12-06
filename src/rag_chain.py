@@ -80,7 +80,7 @@ class ChichewaRAGChain:
             
         Returns:
             Classification: greeting, out_of_scope, product_inquiry, comparison_query, 
-                          procedure_question, or general_info
+                          procedure_question, general_info, or contact_inquiry
         """
         classification_prompt = """You are a query classifier for a bank products chatbot.
 
@@ -90,6 +90,7 @@ Classify the following query into ONE of these categories:
 - "product_inquiry": Questions about specific bank products (accounts, loans, cards, services)
 - "comparison_query": Comparing multiple products or asking about differences
 - "procedure_question": How to open account, apply for loan, use service, requirements
+- "contact_inquiry": Phone numbers, email addresses, branch locations, contact information
 - "general_info": General banking information, fees, rates, terms
 
 Query: {query}
@@ -107,7 +108,8 @@ Respond with ONLY ONE WORD from the categories above."""
             # Validate classification
             valid_categories = [
                 "greeting", "out_of_scope", "product_inquiry", 
-                "comparison_query", "procedure_question", "general_info"
+                "comparison_query", "procedure_question", "general_info",
+                "contact_inquiry"
             ]
             
             if classification not in valid_categories:
