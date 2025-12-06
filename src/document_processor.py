@@ -6,6 +6,7 @@ splitting them into chunks, and creating a vector store for RAG.
 """
 
 import os
+import sys
 from pathlib import Path
 from typing import List
 from docx import Document as DocxDocument
@@ -15,6 +16,10 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
 from dotenv import load_dotenv
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent))
+from contact_loader import load_contacts_as_document
 
 # Load environment variables
 load_dotenv()
@@ -100,7 +105,8 @@ class DocumentProcessor:
     
     def load_all_documents(self) -> List[LangChainDocument]:
         """
-        Load all .docx and .pdf files from the documents directory
+        Load all .docx and .pdf files from the documents directory,
+        plus contact information
         
         Returns:
             List of LangChain Document objects
@@ -145,7 +151,13 @@ class DocumentProcessor:
                 print(f"Error loading {file_path.name}: {e}")
                 continue
         
-        print(f"Successfully loaded {len(documents)} document(s)")
+        # Add contact information
+        print("Loading contact information...")
+        contact_docs = load_contacts_as_document()
+        documents.extend(contact_docs)
+        print(f"Added {len(contact_docs)} contact document(s)")
+        
+        print(f"Successfully loaded {len(documents)} document(s) total")
         return documents
     
     def split_documents(self, documents: List[LangChainDocument]) -> List[LangChainDocument]:
