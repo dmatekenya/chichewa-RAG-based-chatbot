@@ -31,7 +31,7 @@ class ChichewaRAGChain:
         self,
         model: str = "gpt-4",
         temperature: float = 0.7,
-        retrieval_k: int = 3
+        retrieval_k: int = 5  # Increased from 3 to 5 for better coverage
     ):
         """
         Initialize the RAG chain
@@ -199,20 +199,43 @@ Respond with ONLY ONE WORD from the categories above."""
     def generate_answer(
         self,
         english_query: str,
-        retrieved_docs: List[Dict]
+        retrieved_docs: List[Dict],
+        language: str = "english"
     ) -> Tuple[str, List[str]]:
         """
-        Generate an answer based on retrieved documents
+        Generate a natural, helpful answer based on retrieved documents
         
         Args:
             english_query: Query in English
             retrieved_docs: List of retrieved document chunks
+            language: Target language for response tone
             
         Returns:
             Tuple of (answer in English, list of source documents)
         """
         if not retrieved_docs:
-            return "I couldn't find any relevant information in the documents.", []
+            # Generate helpful "no results" message
+            no_results_prompt = f"""You are a friendly, helpful bank assistant. A customer asked: "{english_query}"
+
+Unfortunately, you couldn't find specific information in your knowledge base to answer this question.
+
+Write a warm, helpful response that:
+1. Acknowledges their question politely
+2. Apologizes for not having that specific information
+3. Suggests they try rephrasing the question or asking about related topics
+4. Offers to help with other banking questions
+5. Keeps a friendly, conversational tone
+
+Response:"""
+            
+            messages = [HumanMessage(content=no_results_prompt)]
+            
+            try:
+                response = self.llm.invoke(messages)
+                return response.content.strip(), []
+            except Exception as e:
+                print(f"Error generating no-results message: {e}")
+                return "I apologize, but I couldn't find specific information about that in my knowledge base. Could you try rephrasing your question or asking about a different aspect of our banking products?", []
         
         # Prepare context from retrieved documents
         context_parts = []
@@ -225,17 +248,23 @@ Respond with ONLY ONE WORD from the categories above."""
         
         context = "\n\n".join(context_parts)
         
-        # Create prompt for answer generation
-        answer_prompt = f"""You are a helpful assistant answering questions based on news articles.
+        # Create prompt for answer generation with natural, conversational tone
+        answer_prompt = f"""You are a friendly, knowledgeable bank assistant helping customers understand banking products and services.
 
-Use the following context from news articles to answer the question. If the answer cannot be found in the context, say so clearly.
-
-Context:
+Context from our product documentation:
 {context}
 
-Question: {english_query}
+Customer's Question: {english_query}
 
-Provide a clear, accurate answer based on the context above. If the information is not in the context, say "I don't have information about that in the available articles." """
+Instructions:
+- Provide a warm, conversational answer based on the context
+- Be specific and include relevant details from the documents
+- Use a friendly, helpful tone (not robotic or overly formal)
+- If information is incomplete, acknowledge what you know and what you don't
+- Format the answer clearly with bullet points or paragraphs as appropriate
+- End with an offer to help further if needed
+
+Answer:"""
 
         messages = [
             HumanMessage(content=answer_prompt)
@@ -319,7 +348,11 @@ Provide a clear, accurate answer based on the context above. If the information 
             
             # Step 5: Generate answer in English
             print("   [5] Generating answer...")
-            english_answer, sources = self.generate_answer(english_query, retrieved_docs)
+            english_answer, sources = self.generate_answer(
+                english_query, 
+                retrieved_docs, 
+                language=detected_language
+            )
             print(f"   → English answer: {english_answer[:100]}...")
             
             # Step 6: Translate answer if needed
