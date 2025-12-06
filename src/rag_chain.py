@@ -120,27 +120,55 @@ Respond with ONLY ONE WORD from the categories above."""
             print(f"Classification error: {e}")
             return "product_inquiry"  # Default to product inquiry on error
     
-    def handle_greeting(self, language: str = "chichewa") -> str:
+    def handle_greeting(self, language: str = "chichewa", original_greeting: str = "") -> str:
         """
-        Generate a friendly greeting response
+        Generate a friendly, conversational greeting response with small talk
         
         Args:
             language: Response language ("english" or "chichewa")
+            original_greeting: The original greeting from user for context
             
         Returns:
-            Greeting message in specified language
+            Warm greeting message in specified language
         """
-        greeting_english = (
-            "Hello! I'm here to help you with questions about bank products and services. "
-            "You can ask me about different types of accounts, loans, cards, payments, "
-            "or any banking services. What would you like to know?"
-        )
+        # Use LLM to generate natural, varied greeting responses
+        greeting_prompt = f"""You are a friendly bank assistant. A customer just greeted you with: "{original_greeting}"
+
+Generate a warm, conversational response that:
+1. Responds naturally to their greeting with small talk (e.g., "Hello! How are you today?" or "Hi there! Hope you're having a great day!")
+2. Keeps it brief and genuine (1-2 sentences of small talk)
+3. Then smoothly transitions to offering help with banking services
+4. Mentions a few examples: accounts, loans, cards, or other services
+5. Ends with an open question inviting them to ask
+
+Keep the tone warm, friendly, and natural - like a helpful person, not a robot."""
+
+        messages = [
+            HumanMessage(content=greeting_prompt)
+        ]
         
-        if language == "english":
-            return greeting_english
-        else:
-            greeting_chichewa = self.translator.translate_to_chichewa(greeting_english)
-            return greeting_chichewa
+        try:
+            response = self.llm.invoke(messages)
+            greeting_english = response.content.strip()
+            
+            if language == "english":
+                return greeting_english
+            else:
+                greeting_chichewa = self.translator.translate_to_chichewa(greeting_english)
+                return greeting_chichewa
+        
+        except Exception as e:
+            print(f"Greeting generation error: {e}")
+            # Fallback to simple greeting
+            fallback = (
+                "Hello! How are you doing today? I'm here to help you with any questions "
+                "about our bank products and services - accounts, loans, cards, and more. "
+                "What can I help you with?"
+            )
+            if language == "english":
+                return fallback
+            else:
+                return self.translator.translate_to_chichewa(fallback)
     
     def handle_out_of_scope(self, language: str = "chichewa") -> str:
         """
@@ -318,7 +346,10 @@ Answer:"""
         # Step 4: Handle based on classification
         if query_type == "greeting":
             print("   [4] Handling as greeting")
-            answer = self.handle_greeting(language=detected_language)
+            answer = self.handle_greeting(
+                language=detected_language,
+                original_greeting=user_query
+            )
             
             return {
                 "answer": answer,
