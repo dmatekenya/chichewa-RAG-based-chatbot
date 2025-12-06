@@ -40,6 +40,42 @@ class Translator:
             api_key=os.getenv("OPENAI_API_KEY")
         )
     
+    def detect_language(self, text: str) -> str:
+        """
+        Detect if text is in English or Chichewa
+        
+        Args:
+            text: Text to analyze
+            
+        Returns:
+            Language code: "english" or "chichewa"
+        """
+        detection_prompt = """Identify the language of the following text. 
+Respond with ONLY ONE WORD: either "english" or "chichewa".
+
+Text: {text}
+
+Language:"""
+        
+        messages = [
+            HumanMessage(content=detection_prompt.format(text=text))
+        ]
+        
+        try:
+            response = self.llm.invoke(messages)
+            language = response.content.strip().lower()
+            
+            # Validate response
+            if language not in ["english", "chichewa"]:
+                # Default to chichewa if unclear
+                return "chichewa"
+            
+            return language
+        
+        except Exception as e:
+            print(f"Language detection error: {e}")
+            return "chichewa"  # Default to Chichewa on error
+    
     def translate_to_english(self, chichewa_text: str) -> str:
         """
         Translate Chichewa text to English

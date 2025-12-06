@@ -73,24 +73,28 @@ class ChichewaRAGChain:
     
     def classify_query(self, english_query: str) -> str:
         """
-        Classify the user's query type
+        Classify the user's query intent with enhanced categories
         
         Args:
             english_query: Query in English
             
         Returns:
-            Classification: "greeting", "out_of_scope", or "relevant"
+            Classification: greeting, out_of_scope, product_inquiry, comparison_query, 
+                          procedure_question, or general_info
         """
-        classification_prompt = """You are a query classifier for a chatbot that answers questions about news articles.
+        classification_prompt = """You are a query classifier for a bank products chatbot.
 
 Classify the following query into ONE of these categories:
-- "greeting": If it's a greeting, hello, how are you, etc.
-- "out_of_scope": If it's about weather, math, current events outside the documents, personal advice, etc.
-- "relevant": If it's asking about news, events, people, or information that could be in news articles
+- "greeting": Greetings, hello, how are you, thank you, goodbye
+- "out_of_scope": Weather, math, current events, personal advice, non-banking topics
+- "product_inquiry": Questions about specific bank products (accounts, loans, cards, services)
+- "comparison_query": Comparing multiple products or asking about differences
+- "procedure_question": How to open account, apply for loan, use service, requirements
+- "general_info": General banking information, fees, rates, terms
 
 Query: {query}
 
-Respond with ONLY ONE WORD: greeting, out_of_scope, or relevant"""
+Respond with ONLY ONE WORD from the categories above."""
 
         messages = [
             HumanMessage(content=classification_prompt.format(query=english_query))
@@ -101,51 +105,65 @@ Respond with ONLY ONE WORD: greeting, out_of_scope, or relevant"""
             classification = response.content.strip().lower()
             
             # Validate classification
-            if classification not in ["greeting", "out_of_scope", "relevant"]:
-                # Default to relevant if unclear
-                return "relevant"
+            valid_categories = [
+                "greeting", "out_of_scope", "product_inquiry", 
+                "comparison_query", "procedure_question", "general_info"
+            ]
+            
+            if classification not in valid_categories:
+                # Default to product_inquiry if unclear
+                return "product_inquiry"
             
             return classification
         
         except Exception as e:
             print(f"Classification error: {e}")
-            return "relevant"  # Default to relevant on error
+            return "product_inquiry"  # Default to product inquiry on error
     
-    def handle_greeting(self) -> str:
+    def handle_greeting(self, language: str = "chichewa") -> str:
         """
-        Generate a friendly greeting response in Chichewa
+        Generate a friendly greeting response
         
+        Args:
+            language: Response language ("english" or "chichewa")
+            
         Returns:
-            Greeting message in Chichewa
+            Greeting message in specified language
         """
         greeting_english = (
-            "Hello! I'm here to help you with questions about news articles. "
-            "You can ask me about events, people, sports, politics, or any news topics. "
-            "What would you like to know?"
+            "Hello! I'm here to help you with questions about bank products and services. "
+            "You can ask me about different types of accounts, loans, cards, payments, "
+            "or any banking services. What would you like to know?"
         )
         
-        greeting_chichewa = self.translator.translate_to_chichewa(greeting_english)
-        return greeting_chichewa
+        if language == "english":
+            return greeting_english
+        else:
+            greeting_chichewa = self.translator.translate_to_chichewa(greeting_english)
+            return greeting_chichewa
     
-    def handle_out_of_scope(self, original_query_chichewa: str) -> str:
+    def handle_out_of_scope(self, language: str = "chichewa") -> str:
         """
         Handle out-of-scope queries gracefully
         
         Args:
-            original_query_chichewa: Original query in Chichewa
+            language: Response language ("english" or "chichewa")
             
         Returns:
-            Polite response in Chichewa
+            Polite response in specified language
         """
         out_of_scope_english = (
-            "I'm sorry, but I'm designed specifically to answer questions about news articles "
-            "in my knowledge base. I can help you with information about events, people, sports, "
-            "politics, and other news topics covered in the articles. "
-            "Is there anything about the news you'd like to know?"
+            "I'm sorry, but I'm designed specifically to answer questions about bank products "
+            "and services. I can help you with information about accounts, loans, cards, "
+            "payment services, and other banking topics. "
+            "Is there anything about our bank products you'd like to know?"
         )
         
-        out_of_scope_chichewa = self.translator.translate_to_chichewa(out_of_scope_english)
-        return out_of_scope_chichewa
+        if language == "english":
+            return out_of_scope_english
+        else:
+            out_of_scope_chichewa = self.translator.translate_to_chichewa(out_of_scope_english)
+            return out_of_scope_chichewa
     
     def retrieve_documents(self, english_query: str) -> List[Dict]:
         """
@@ -234,74 +252,90 @@ Provide a clear, accurate answer based on the context above. If the information 
     
     def answer_query(
         self,
-        chichewa_query: str,
+        user_query: str,
         return_metadata: bool = False
     ) -> Dict:
         """
-        Complete RAG pipeline: translate query, classify, retrieve, generate, translate back
+        Complete RAG pipeline with language detection and intent-based routing
         
         Args:
-            chichewa_query: User's query in Chichewa
+            user_query: User's query in English or Chichewa
             return_metadata: If True, return additional metadata
             
         Returns:
             Dictionary with answer and optional metadata
         """
-        print(f"\n🔍 Processing query: {chichewa_query}")
+        print(f"\n🔍 Processing query: {user_query}")
         
-        # Step 1: Translate query to English
-        print("   [1] Translating to English...")
-        english_query = self.translator.translate_to_english(chichewa_query)
-        print(f"   → English query: {english_query}")
+        # Step 1: Detect language
+        print("   [1] Detecting language...")
+        detected_language = self.translator.detect_language(user_query)
+        print(f"   → Language: {detected_language}")
         
-        # Step 2: Classify query type
-        print("   [2] Classifying query...")
+        # Step 2: Translate to English if needed
+        if detected_language == "chichewa":
+            print("   [2] Translating to English...")
+            english_query = self.translator.translate_to_english(user_query)
+            print(f"   → English query: {english_query}")
+        else:
+            print("   [2] Query already in English, skipping translation")
+            english_query = user_query
+        
+        # Step 3: Classify query intent
+        print("   [3] Classifying query intent...")
         query_type = self.classify_query(english_query)
-        print(f"   → Query type: {query_type}")
+        print(f"   → Intent: {query_type}")
         
-        # Step 3: Handle based on classification
+        # Step 4: Handle based on classification
         if query_type == "greeting":
-            print("   [3] Handling as greeting")
-            chichewa_answer = self.handle_greeting()
+            print("   [4] Handling as greeting")
+            answer = self.handle_greeting(language=detected_language)
             
             return {
-                "answer": chichewa_answer,
+                "answer": answer,
                 "query_type": "greeting",
                 "sources": [],
-                "english_query": english_query
+                "english_query": english_query,
+                "detected_language": detected_language
             }
         
         elif query_type == "out_of_scope":
-            print("   [3] Handling as out-of-scope")
-            chichewa_answer = self.handle_out_of_scope(chichewa_query)
+            print("   [4] Handling as out-of-scope")
+            answer = self.handle_out_of_scope(language=detected_language)
             
             return {
-                "answer": chichewa_answer,
+                "answer": answer,
                 "query_type": "out_of_scope",
                 "sources": [],
-                "english_query": english_query
+                "english_query": english_query,
+                "detected_language": detected_language
             }
         
-        else:  # relevant query
-            # Step 3: Retrieve relevant documents
-            print("   [3] Retrieving relevant documents...")
+        else:  # product inquiry, comparison, procedure, or general info
+            # Step 4: Retrieve relevant documents
+            print("   [4] Retrieving relevant documents...")
             retrieved_docs = self.retrieve_documents(english_query)
             print(f"   → Retrieved {len(retrieved_docs)} documents")
             
-            # Step 4: Generate answer in English
-            print("   [4] Generating answer...")
+            # Step 5: Generate answer in English
+            print("   [5] Generating answer...")
             english_answer, sources = self.generate_answer(english_query, retrieved_docs)
             print(f"   → English answer: {english_answer[:100]}...")
             
-            # Step 5: Translate answer to Chichewa
-            print("   [5] Translating answer to Chichewa...")
-            chichewa_answer = self.translator.translate_to_chichewa(english_answer)
+            # Step 6: Translate answer if needed
+            if detected_language == "chichewa":
+                print("   [6] Translating answer to Chichewa...")
+                final_answer = self.translator.translate_to_chichewa(english_answer)
+            else:
+                print("   [6] Keeping answer in English")
+                final_answer = english_answer
             
             result = {
-                "answer": chichewa_answer,
-                "query_type": "relevant",
+                "answer": final_answer,
+                "query_type": query_type,
                 "sources": sources,
-                "english_query": english_query
+                "english_query": english_query,
+                "detected_language": detected_language
             }
             
             if return_metadata:
@@ -316,40 +350,53 @@ Provide a clear, accurate answer based on the context above. If the information 
 if __name__ == "__main__":
     # Test the RAG chain
     print("=" * 70)
-    print("Testing Chichewa RAG Chatbot")
+    print("Testing Bank Products Chatbot with Enhanced Classification")
     print("=" * 70)
     
     # Initialize the RAG chain
     rag_chain = ChichewaRAGChain()
     
-    # Test queries
+    # Test queries in both English and Chichewa
     test_queries = [
-        # Greeting
-        "Moni, muli bwanji?",
+        # English greeting
+        ("Hello, how are you?", "English"),
         
-        # Out of scope - weather
-        "Kwacha bwanji lero?",
+        # Chichewa greeting
+        ("Moni, muli bwanji?", "Chichewa"),
         
-        # Out of scope - math
-        "Kodi 2 + 2 ndi zingati?",
+        # English out of scope
+        ("What's the weather like today?", "English"),
         
-        # Relevant - news query
-        "Kodi nkhani iyi ikukhudza chiyani?",
+        # Chichewa out of scope
+        ("Kwacha bwanji lero?", "Chichewa"),
         
-        # Relevant - specific query
-        "Ndiuzeni za masewera"
+        # English product inquiry
+        ("What types of savings accounts do you have?", "English"),
+        
+        # Chichewa product inquiry
+        ("Kodi muli ndi ma akaunti a mtundu wanji?", "Chichewa"),
+        
+        # English comparison query
+        ("What's the difference between a current account and savings account?", "English"),
+        
+        # Chichewa loan inquiry
+        ("Ndiuzeni za mortgage loan", "Chichewa"),
+        
+        # English procedure question
+        ("How do I open a savings account?", "English"),
     ]
     
-    for query in test_queries:
+    for query, expected_lang in test_queries:
         print("\n" + "=" * 70)
         result = rag_chain.answer_query(query, return_metadata=False)
         
-        print(f"\n📥 Query (Chichewa):  {query}")
-        print(f"🔍 Query Type:        {result['query_type']}")
-        print(f"📤 Answer (Chichewa): {result['answer']}")
+        print(f"\n📥 Query ({expected_lang}): {query}")
+        print(f"🌍 Detected Language:    {result['detected_language']}")
+        print(f"🔍 Intent:               {result['query_type']}")
+        print(f"📤 Answer:               {result['answer'][:150]}...")
         
         if result['sources']:
-            print(f"📚 Sources:           {', '.join(result['sources'])}")
+            print(f"📚 Sources:              {', '.join(result['sources'][:3])}")
     
     print("\n" + "=" * 70)
     print("Testing complete!")

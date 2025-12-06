@@ -130,7 +130,7 @@ def main():
     
     # Page configuration
     st.set_page_config(
-        page_title="Chichewa Bank Products Chatbot",
+        page_title="Dziwani Za Bank Yanu",
         page_icon="🏦",
         layout="wide",
         initial_sidebar_state="expanded"
@@ -141,10 +141,11 @@ def main():
     
     # Sidebar
     with st.sidebar:
-        st.title("ℹ️ Zambiri (About)")
+        # Display logo
+        st.image("docs/images/logo.png", use_container_width=True)
         
         st.markdown("""
-        ### Chichewa Bank Products Chatbot
+        ### Dziwani Za Bank Yanu
         
         Muli bwanji! Ndine chatbot yemwe amathandiza kuyankha mafunso pa nkhani za ma produkti a banki mu Chichewa.
         
@@ -198,7 +199,7 @@ def main():
         st.caption("Built with LangChain + OpenAI + Streamlit")
     
     # Main chat interface
-    st.title("🏦 Chichewa Bank Products Chatbot")
+    st.title("🏦 Dziwani Za Bank Yanu")
     st.caption("Funsani mafunso mu Chichewa pa nkhani za ma produkti a banki (Ask questions in Chichewa about bank products)")
     
     # Display chat history
