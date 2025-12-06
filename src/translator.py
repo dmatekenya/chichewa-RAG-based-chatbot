@@ -6,6 +6,7 @@ Uses zero-shot translation with clear system prompts.
 """
 
 from typing import Optional
+import re
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 from dotenv import load_dotenv
@@ -13,6 +14,16 @@ import os
 
 # Load environment variables
 load_dotenv()
+
+# Banking product names that might appear in queries (case-insensitive)
+PRODUCT_NAMES = [
+    "amayi angathe", "mlimi", "fiestasave", "banknet", "mo626", "mo626ice",
+    "fcda", "itf", "diaspora", "step up", "payday loan", "mortgage",
+    "visa debit", "eft", "call account", "current account", "savings account",
+    "fixed term deposit", "student serve", "special savers", "contactless card",
+    "documentary", "standby letter", "custody services", "payment gateway",
+    "consumer loan", "vehicle loan", "asset based", "employer guaranteed"
+]
 
 
 class Translator:
@@ -42,7 +53,8 @@ class Translator:
     
     def detect_language(self, text: str) -> str:
         """
-        Detect if text is in English or Chichewa
+        Detect the primary language of text (English or Chichewa)
+        Handles mixed language queries and banking product names intelligently
         
         Args:
             text: Text to analyze
@@ -50,15 +62,35 @@ class Translator:
         Returns:
             Language code: "english" or "chichewa"
         """
-        detection_prompt = """Identify the language of the following text. 
-Respond with ONLY ONE WORD: either "english" or "chichewa".
+        # Preprocess: Remove product names to avoid confusion
+        cleaned_text = text.lower()
+        for product in PRODUCT_NAMES:
+            # Remove product names (case-insensitive)
+            cleaned_text = re.sub(r'\b' + re.escape(product) + r'\b', '', cleaned_text, flags=re.IGNORECASE)
+        
+        # Remove extra whitespace
+        cleaned_text = ' '.join(cleaned_text.split()).strip()
+        
+        # If very little text remains after removing product names, use original
+        if len(cleaned_text) < 5:
+            cleaned_text = text
+        
+        detection_prompt = """Determine the PRIMARY/PREDOMINANT language of the following text.
+
+IMPORTANT:
+- Ignore any banking product names (they may be in any language)
+- Focus on the question words, verbs, and sentence structure
+- Determine which language is PREDOMINANTLY used
+- If mostly English words/structure → respond "english"
+- If mostly Chichewa words/structure → respond "chichewa"  
+- If unclear or mixed equally → respond "english" (default)
 
 Text: {text}
 
-Language:"""
+Respond with ONLY ONE WORD: either "english" or "chichewa"."""
         
         messages = [
-            HumanMessage(content=detection_prompt.format(text=text))
+            HumanMessage(content=detection_prompt.format(text=cleaned_text))
         ]
         
         try:
@@ -67,14 +99,14 @@ Language:"""
             
             # Validate response
             if language not in ["english", "chichewa"]:
-                # Default to chichewa if unclear
-                return "chichewa"
+                # Default to English if unclear
+                return "english"
             
             return language
         
         except Exception as e:
             print(f"Language detection error: {e}")
-            return "chichewa"  # Default to Chichewa on error
+            return "english"  # Default to English on error (safer assumption)
     
     def translate_to_english(self, chichewa_text: str) -> str:
         """
