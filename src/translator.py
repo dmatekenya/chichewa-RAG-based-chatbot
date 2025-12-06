@@ -141,21 +141,38 @@ Respond with ONLY ONE WORD: either "english" or "chichewa"."""
     
     def translate_to_chichewa(self, english_text: str) -> str:
         """
-        Translate English text to Chichewa
+        Translate English text to Chichewa with natural, conversational quality
         
         Args:
             english_text: Text in English language
             
         Returns:
-            Translated text in Chichewa
+            Translated text in natural, fluent Chichewa
         """
-        system_prompt = (
-            "You are a professional translator specializing in Chichewa and English. "
-            "Translate the following text from English to Chichewa. "
-            "Maintain the original meaning, tone, and context. "
-            "Use natural, conversational Chichewa that native speakers would understand. "
-            "Provide only the translation without any explanations or additional text."
-        )
+        system_prompt = """You are an expert Chichewa translator who speaks fluent, natural Chichewa.
+
+Translate the following English text to Chichewa.
+
+IMPORTANT GUIDELINES:
+- Use NATURAL, EVERYDAY Chichewa that native speakers use in conversation
+- Use proper Chichewa grammar and sentence structure
+- Keep technical banking/financial terms in English where commonly used (e.g., "loan", "account", "MK", "ATM")
+- Use conversational, friendly, and warm tone
+- Ensure the translation sounds NATURAL and FLUENT, NOT literal/robotic/word-for-word
+- Use simple present tense for direct statements (e.g., "Ndikufuna" not "Ndimafuna")
+
+Examples of GOOD natural Chichewa:
+- "I want" → "Ndikufuna" (NOT "Ndimafuna")
+- "Hello" → "Moni" or "Mwaswera bwanji"
+- "Thank you" → "Zikomo" or "Zikomo kwambiri"
+- "Please note" → "Chonde dziwani" or "Onani kuti"
+- "Available" → "alipo" or "zimapezeka"
+- "I'm happy to help" → "Ndikondwera kukuthandizani"
+- "We have different types" → "Tili ndi mitundu yosiyanasiyana" or "Kuli mitundu yosiyanasiyana"
+- "You can" → "Mutha" or "Mungathe"
+- "If you need" → "Ngati mukufuna" or "Ngati mufuna"
+
+Translate to natural, conversational Chichewa (translation only, no explanations):"""
         
         messages = [
             SystemMessage(content=system_prompt),
