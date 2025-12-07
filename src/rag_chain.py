@@ -72,6 +72,119 @@ class ChichewaRAGChain:
             api_key=os.getenv("OPENAI_API_KEY")
         )
     
+    def detect_query_intent(self, english_query: str) -> str:
+        """
+        Detect the specific intent/aspect the user is asking about.
+        
+        This is different from classify_query which categorizes the type of query.
+        This function identifies WHAT ASPECT of a product is being asked about.
+        
+        Args:
+            english_query: Query in English
+            
+        Returns:
+            Intent: 'benefits', 'requirements', 'fees', 'features', or 'general'
+        """
+        query_lower = english_query.lower()
+        
+        # Benefits intent
+        if any(word in query_lower for word in ['benefit', 'advantage', 'ubwino', 'features', 'why choose']):
+            return 'benefits'
+        
+        # Requirements intent
+        elif any(word in query_lower for word in ['requirement', 'eligibility', 'zofunikira', 'qualify', 'need to', 'criteria']):
+            return 'requirements'
+        
+        # Fees/cost intent
+        elif any(word in query_lower for word in ['fee', 'cost', 'charge', 'price', 'mtengo', 'phindu', 'interest rate']):
+            return 'fees'
+        
+        # Features/how it works
+        elif any(word in query_lower for word in ['how does', 'how to use', 'functionality', 'works']):
+            return 'features'
+        
+        # General/overview
+        else:
+            return 'general'
+    
+    @staticmethod
+    def extract_product_name(file_path: str) -> str:
+        """
+        Extract product name from filename.
+        
+        Examples:
+            'amayi-angathe-account.pdf' → 'amayi angathe'
+            'mlimi-loan.pdf' → 'mlimi'
+            '233-amayi-angathe-factsheet.pdf' → 'amayi angathe'
+        
+        Args:
+            file_path: Path to document file
+            
+        Returns:
+            Product name extracted from filename
+        """
+        import re
+        
+        filename = os.path.basename(file_path)
+        # Remove extension
+        name = filename.replace('.pdf', '').replace('.docx', '')
+        # Remove leading numbers and hyphens (e.g., '233-')
+        name = re.sub(r'^\d+-', '', name)
+        # Replace hyphens/underscores with spaces
+        name = name.replace('-', ' ').replace('_', ' ')
+        # Remove common suffixes
+        name = name.replace('account', '').replace('loan', '').replace('factsheet', '')
+        # Clean up extra spaces
+        name = ' '.join(name.split())
+        return name.strip()
+    
+    def _build_intent_instructions(self, query_intent: str) -> str:
+        """
+        Build intent-specific instructions for the answer generation prompt.
+        
+        Args:
+            query_intent: The detected intent (benefits/requirements/fees/features/general)
+            
+        Returns:
+            Intent-specific instructions to guide the answer
+        """
+        intent_instructions = {
+            'benefits': """
+FOCUS: This is a question about BENEFITS/ADVANTAGES.
+- Focus ONLY on benefits, advantages, and features
+- DO NOT discuss requirements or eligibility criteria
+- Highlight what makes this product valuable
+- Emphasize positive aspects and advantages""",
+            
+            'requirements': """
+FOCUS: This is a question about REQUIREMENTS/ELIGIBILITY.
+- Focus ONLY on requirements, eligibility criteria, and what's needed
+- DO NOT discuss benefits or advantages
+- List what the customer needs to qualify
+- Be clear about mandatory criteria""",
+            
+            'fees': """
+FOCUS: This is a question about FEES/COSTS.
+- Focus ONLY on fees, charges, costs, and pricing
+- DO NOT discuss benefits or requirements
+- Be specific about amounts if mentioned
+- Clarify what the customer will pay""",
+            
+            'features': """
+FOCUS: This is a question about HOW IT WORKS.
+- Focus on functionality and features
+- Explain how the product/service operates
+- Include usage instructions if relevant""",
+            
+            'general': """
+FOCUS: This is a general overview question.
+- Provide a balanced overview
+- Can include benefits, features, and basic requirements
+- Keep it comprehensive but concise"""
+        }
+        
+        return intent_instructions.get(query_intent, intent_instructions['general'])
+    
     def classify_query(self, english_query: str) -> str:
         """
         Classify the user's query intent with enhanced categories
@@ -239,7 +352,8 @@ Keep the tone warm, friendly, and natural - like a helpful person, not a robot."
         self,
         english_query: str,
         retrieved_docs: List[Dict],
-        target_language: str = "english"
+        target_language: str = "chichewa",
+        query_intent: str = "general"
     ) -> Tuple[str, List[str]]:
         """
         Generate a natural, helpful answer based on retrieved documents
@@ -249,6 +363,7 @@ Keep the tone warm, friendly, and natural - like a helpful person, not a robot."
             english_query: Query in English
             retrieved_docs: List of retrieved document chunks
             target_language: Language to generate answer in ("english" or "chichewa")
+            query_intent: The specific aspect being asked about (benefits/requirements/fees/features/general)
             
         Returns:
             Tuple of (answer in target language, list of source documents)
@@ -299,13 +414,21 @@ Response:"""
         # Prepare context from retrieved documents
         context_parts = []
         sources = []
+        product_names = set()
         
         for i, doc in enumerate(retrieved_docs, 1):
             context_parts.append(f"[Document {i} - {doc['source']}]\n{doc['content']}")
             if doc['source'] not in sources:
                 sources.append(doc['source'])
+            # Extract product name for context
+            product_name = self.extract_product_name(doc['source'])
+            if product_name:
+                product_names.add(product_name)
         
         context = "\n\n".join(context_parts)
+        
+        # Build intent-specific instructions
+        intent_instructions = self._build_intent_instructions(query_intent)
         
         # Generate answer directly in target language
         if target_language == "chichewa":
@@ -318,6 +441,8 @@ CONTEXT YOCHOKERA M'MALEMBA ATHU (mu Chingerezi):
 {context}
 
 FUNSO LA MUNTHU (mu Chingerezi): {english_query}
+
+{intent_instructions}
 
 {guidelines}
 
@@ -340,6 +465,8 @@ Context from our product documentation:
 {context}
 
 Customer's Question: {english_query}
+
+{intent_instructions}
 
 Instructions:
 - Provide a warm, conversational answer based on the context
@@ -438,18 +565,25 @@ Answer:"""
             retrieved_docs = self.retrieve_documents(english_query)
             print(f"   → Retrieved {len(retrieved_docs)} documents")
             
+            # Step 4.5: Detect query intent (NEW - Session 1)
+            print("   [4.5] Detecting query intent...")
+            query_intent = self.detect_query_intent(english_query)
+            print(f"   → Query Intent: {query_intent}")
+            
             # Step 5: Generate answer DIRECTLY in target language (no translation)
             print(f"   [5] Generating answer directly in {detected_language}...")
             final_answer, sources = self.generate_answer(
                 english_query, 
                 retrieved_docs, 
-                target_language=detected_language
+                target_language=detected_language,
+                query_intent=query_intent  # NEW - Pass intent to generation
             )
             print(f"   → Answer ({detected_language}): {final_answer[:100]}...")
             
             result = {
                 "answer": final_answer,
                 "query_type": query_type,
+                "query_intent": query_intent,  # NEW - Include in result
                 "sources": sources,
                 "english_query": english_query,
                 "detected_language": detected_language
