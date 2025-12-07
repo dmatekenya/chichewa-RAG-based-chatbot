@@ -111,6 +111,7 @@ Respond with ONLY ONE WORD: either "english" or "chichewa"."""
     def translate_to_english(self, chichewa_text: str) -> str:
         """
         Translate Chichewa text to English
+        Preserves banking product names and handles banking terminology
         
         Args:
             chichewa_text: Text in Chichewa language
@@ -118,21 +119,46 @@ Respond with ONLY ONE WORD: either "english" or "chichewa"."""
         Returns:
             Translated text in English
         """
+        # Preprocess: Identify and protect product names
+        protected_terms = {}
+        temp_text = chichewa_text
+        
+        # Protect product names from translation
+        for i, product in enumerate(PRODUCT_NAMES):
+            if product.lower() in temp_text.lower():
+                placeholder = f"__PRODUCT_{i}__"
+                # Case-insensitive replacement
+                pattern = re.compile(re.escape(product), re.IGNORECASE)
+                temp_text = pattern.sub(placeholder, temp_text)
+                protected_terms[placeholder] = product
+        
         system_prompt = (
-            "You are a professional translator specializing in Chichewa and English. "
+            "You are a professional translator specializing in Chichewa and English, with expertise in banking terminology. "
             "Translate the following text from Chichewa to English. "
-            "Maintain the original meaning, tone, and context. "
+            "\n\nIMPORTANT CONTEXT:"
+            "\n- This is a banking chatbot, so queries are about bank products and services"
+            "\n- Common Chichewa banking terms:"
+            "\n  * 'Ubwino' in banking context = 'benefits' or 'features' (not 'goodness')"
+            "\n  * 'Phindu' = 'interest' or 'profit' (banking context)"
+            "\n  * Product names starting with '__PRODUCT_' should be kept as-is"
+            "\n  * Focus on banking meaning, not literal translation"
+            "\n\nMaintain the original meaning, tone, and context. "
             "Provide only the translation without any explanations or additional text."
         )
         
         messages = [
             SystemMessage(content=system_prompt),
-            HumanMessage(content=chichewa_text)
+            HumanMessage(content=temp_text)
         ]
         
         try:
             response = self.llm.invoke(messages)
             translation = response.content.strip()
+            
+            # Restore protected product names
+            for placeholder, original in protected_terms.items():
+                translation = translation.replace(placeholder, original)
+            
             return translation
         
         except Exception as e:
