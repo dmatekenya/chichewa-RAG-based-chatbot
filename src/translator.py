@@ -163,7 +163,7 @@ IMPORTANT GUIDELINES:
 
 Examples of GOOD natural Chichewa:
 - "I want" → "Ndikufuna" (NOT "Ndimafuna")
-- "Hello" → "Moni" or "Mwaswera bwanji"
+- "Hello" → Use context-appropriate greetings like "Zikuyenda bwanji" (informal), "Mwaswera bwanji" (afternoon), or just start without greeting
 - "Thank you" → "Zikomo" or "Zikomo kwambiri"
 - "Please note" → "Chonde dziwani" or "Onani kuti"
 - "Available" → "alipo" or "zimapezeka"
@@ -171,6 +171,11 @@ Examples of GOOD natural Chichewa:
 - "We have different types" → "Tili ndi mitundu yosiyanasiyana" or "Kuli mitundu yosiyanasiyana"
 - "You can" → "Mutha" or "Mungathe"
 - "If you need" → "Ngati mukufuna" or "Ngati mufuna"
+
+CRITICAL - Natural Conversation Starters (NEVER use "Moni"):
+- Instead of "Hello," use: "Zikuyenda bwanji" (How's it going), "Mwaswera bwanji" (afternoon), "Wawa" (Hey - informal), or skip greeting and start directly with "Zikomo" or the main message
+- For responses, often start with just "Zikomo kwambiri" or go straight to answering
+- Keep it casual and conversational like native speakers
 
 Translate to natural, conversational Chichewa (translation only, no explanations):"""
         
@@ -182,11 +187,46 @@ Translate to natural, conversational Chichewa (translation only, no explanations
         try:
             response = self.llm.invoke(messages)
             translation = response.content.strip()
+            
+            # Post-process to make greetings more natural
+            translation = self._naturalize_chichewa_greetings(translation)
+            
             return translation
         
         except Exception as e:
             print(f"Translation error (English→Chichewa): {e}")
             return f"[Translation failed: {english_text}]"
+    
+    def _naturalize_chichewa_greetings(self, text: str) -> str:
+        """
+        Post-process Chichewa text to replace formal greetings with natural ones
+        
+        Args:
+            text: Chichewa text that may contain formal greetings
+            
+        Returns:
+            Text with more natural, conversational greetings
+        """
+        import random
+        
+        # Natural greeting alternatives for different contexts
+        casual_greetings = [
+            "Zikuyenda bwanji",  # How's it going
+            "Zikomo kwambiri",   # Thank you very much (often used to start responses)
+            "Wawa",              # Hey (very informal)
+        ]
+        
+        # If text starts with "Moni" (too formal), replace with something more natural
+        # Pattern: "Moni!" or "Moni," at the start
+        if text.startswith("Moni!") or text.startswith("Moni,"):
+            # For most banking responses, starting with "Zikomo kwambiri" or just removing "Moni" works best
+            # We'll just remove "Moni," or "Moni!" and let the rest flow naturally
+            if text.startswith("Moni!"):
+                text = text.replace("Moni!", "", 1).strip()
+            elif text.startswith("Moni,"):
+                text = text.replace("Moni,", "", 1).strip()
+        
+        return text
     
     def translate_with_context(
         self,

@@ -19,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.translator import Translator
 from src.document_processor import DocumentProcessor
+from src.chichewa_phrases import build_chichewa_generation_guidelines
 
 # Load environment variables
 load_dotenv()
@@ -125,6 +126,7 @@ Respond with ONLY ONE WORD from the categories above."""
     def handle_greeting(self, language: str = "chichewa", original_greeting: str = "") -> str:
         """
         Generate a friendly, conversational greeting response with small talk
+        Now generates DIRECTLY in target language (no translation)
         
         Args:
             language: Response language ("english" or "chichewa")
@@ -133,8 +135,24 @@ Respond with ONLY ONE WORD from the categories above."""
         Returns:
             Warm greeting message in specified language
         """
-        # Use LLM to generate natural, varied greeting responses
-        greeting_prompt = f"""You are a friendly bank assistant. A customer just greeted you with: "{original_greeting}"
+        # Generate greeting directly in target language
+        if language == "chichewa":
+            greeting_prompt = f"""Ndinu wothandiza wa banki yomwe ikuthandiza maklienti.
+
+Munthu anakupatsa moni: "{original_greeting}"
+
+Lembani yankho lochezera ndi lafatsa lomwe:
+1. Kuyankha moni wawo mwachibadwa (mwachitsanzo: "Zikuyenda bwanji?", "Wawa! Ndikuyendera?", "Mwaswera!")
+2. Kukhala wachidule ndi wonama (mawu 1-2 okha)
+3. Kenako kuwapatsa thandizo pa nkhani za banki
+4. Kutchula zitsanzo zingapo: ma account, ma loan, ma card, kapena zinthu zina
+5. Kumaliza ndi funso lakuti iwo afunse
+
+Khalani ochezera, wochezera, ndi woyamba - ngati munthu wothandiza, osati robot.
+
+Yankhani m'CHICHEWA CHOYAMBA (osati kumasulira):"""
+        else:
+            greeting_prompt = f"""You are a friendly bank assistant. A customer just greeted you with: "{original_greeting}"
 
 Generate a warm, conversational response that:
 1. Responds naturally to their greeting with small talk (e.g., "Hello! How are you today?" or "Hi there! Hope you're having a great day!")
@@ -151,30 +169,20 @@ Keep the tone warm, friendly, and natural - like a helpful person, not a robot."
         
         try:
             response = self.llm.invoke(messages)
-            greeting_english = response.content.strip()
-            
-            if language == "english":
-                return greeting_english
-            else:
-                greeting_chichewa = self.translator.translate_to_chichewa(greeting_english)
-                return greeting_chichewa
+            return response.content.strip()
         
         except Exception as e:
             print(f"Greeting generation error: {e}")
             # Fallback to simple greeting
-            fallback = (
-                "Hello! How are you doing today? I'm here to help you with any questions "
-                "about our bank products and services - accounts, loans, cards, and more. "
-                "What can I help you with?"
-            )
             if language == "english":
-                return fallback
+                return "Hello! How are you doing today? I'm here to help you with any questions about our bank products and services - accounts, loans, cards, and more. What can I help you with?"
             else:
-                return self.translator.translate_to_chichewa(fallback)
+                return "Zikuyenda bwanji! Ndikuthandizani pa nkhani za banki - ma account, ma loan, ma card, ndi zina zambiri. Mulinso ndi funso?"
     
     def handle_out_of_scope(self, language: str = "chichewa") -> str:
         """
         Handle out-of-scope queries gracefully
+        Now provides natural responses directly in target language
         
         Args:
             language: Response language ("english" or "chichewa")
@@ -182,18 +190,19 @@ Keep the tone warm, friendly, and natural - like a helpful person, not a robot."
         Returns:
             Polite response in specified language
         """
-        out_of_scope_english = (
-            "I'm sorry, but I'm designed specifically to answer questions about bank products "
-            "and services. I can help you with information about accounts, loans, cards, "
-            "payment services, and other banking topics. "
-            "Is there anything about our bank products you'd like to know?"
-        )
-        
         if language == "english":
-            return out_of_scope_english
+            return (
+                "I'm sorry, but I'm designed specifically to answer questions about bank products "
+                "and services. I can help you with information about accounts, loans, cards, "
+                "payment services, and other banking topics. "
+                "Is there anything about our bank products you'd like to know?"
+            )
         else:
-            out_of_scope_chichewa = self.translator.translate_to_chichewa(out_of_scope_english)
-            return out_of_scope_chichewa
+            return (
+                "Pepani, koma ndimapangidwa kuti ndiyankhe mafunso okhudzana ndi zinthu za banki ndi ntchito zake. "
+                "Ndingathe kukuthandizani pa nkhani za ma account, ma loan, ma card, malipiro, ndi zinthu zina za banki. "
+                "Kodi pali chilichonse cha zinthu za banki zomwe mukufuna kudziwa?"
+            )
     
     def retrieve_documents(self, english_query: str) -> List[Dict]:
         """
@@ -230,22 +239,39 @@ Keep the tone warm, friendly, and natural - like a helpful person, not a robot."
         self,
         english_query: str,
         retrieved_docs: List[Dict],
-        language: str = "english"
+        target_language: str = "english"
     ) -> Tuple[str, List[str]]:
         """
         Generate a natural, helpful answer based on retrieved documents
+        Now supports DIRECT generation in Chichewa (no translation)
         
         Args:
             english_query: Query in English
             retrieved_docs: List of retrieved document chunks
-            language: Target language for response tone
+            target_language: Language to generate answer in ("english" or "chichewa")
             
         Returns:
-            Tuple of (answer in English, list of source documents)
+            Tuple of (answer in target language, list of source documents)
         """
         if not retrieved_docs:
-            # Generate helpful "no results" message
-            no_results_prompt = f"""You are a friendly, helpful bank assistant. A customer asked: "{english_query}"
+            # Generate helpful "no results" message in target language
+            if target_language == "chichewa":
+                no_results_prompt = f"""Ndinu wothandiza wa banki yomwe ikuthandiza maklienti.
+
+Munthu anafunsa: "{english_query}"
+
+Koma simunapeze chilichonse mu nkhani zanu zomwe zingayankhe funso ili.
+
+Lembani yankho lofatsa ndi lothandiza lomwe:
+1. Kuvomereza funso lawo mwachisomo
+2. Kupepesa chifukwa choti mulibe zambiri pa nkhaniyi
+3. Kuwauza kuti ayese kufunsa mwanjira ina kapena za nkhani zofanana
+4. Kuwapatsa mwayi wofunsa mafunso ena a banki
+5. Kukhala wochezera ndi wothandiza
+
+Yankhani m'Chichewa choyamba chachilengedwe (osatero mawu ndi mawu):"""
+            else:
+                no_results_prompt = f"""You are a friendly, helpful bank assistant. A customer asked: "{english_query}"
 
 Unfortunately, you couldn't find specific information in your knowledge base to answer this question.
 
@@ -265,7 +291,10 @@ Response:"""
                 return response.content.strip(), []
             except Exception as e:
                 print(f"Error generating no-results message: {e}")
-                return "I apologize, but I couldn't find specific information about that in my knowledge base. Could you try rephrasing your question or asking about a different aspect of our banking products?", []
+                if target_language == "chichewa":
+                    return "Pepani, sindinapeze zambiri pa nkhaniyi. Mutha kufunsa mwanjira ina kapena za nkhani ina ya banki?", []
+                else:
+                    return "I apologize, but I couldn't find specific information about that in my knowledge base. Could you try rephrasing your question or asking about a different aspect of our banking products?", []
         
         # Prepare context from retrieved documents
         context_parts = []
@@ -278,8 +307,34 @@ Response:"""
         
         context = "\n\n".join(context_parts)
         
-        # Create prompt for answer generation with natural, conversational tone
-        answer_prompt = f"""You are a friendly, knowledgeable bank assistant helping customers understand banking products and services.
+        # Generate answer directly in target language
+        if target_language == "chichewa":
+            # Get Chichewa generation guidelines
+            guidelines = build_chichewa_generation_guidelines()
+            
+            answer_prompt = f"""Ndinu wothandiza wa banki yomwe ikuthandiza maklienti kudziwa zambiri za zinthu za banki.
+
+CONTEXT YOCHOKERA M'MALEMBA ATHU (mu Chingerezi):
+{context}
+
+FUNSO LA MUNTHU (mu Chingerezi): {english_query}
+
+{guidelines}
+
+MALANGIZO OFUNIKIRA:
+- Yankhani m'CHICHEWA CHOYAMBA chachilengedwe (osati kumasulira mawu ndi mawu)
+- Gwiritsani ntchito context yomwe yaperekedwa kuti muyankhe bwino
+- Sungani mawu a banking mu Chingerezi (account, loan, ATM, MK, etc.)
+- Khalani ochezera, wothandiza, ndi woyamba
+- Gwiritsani ntchito mawu olumikizana a Chichichewa (komanso, zomwe, moti, motsatira, etc.)
+- Ngati zambiri zilibe, vomereza zomwe mukudziwa ndi zomwe simukudziwa
+- Konzani yankho bwino ndi ma bullet points ngati pali zambiri
+- Maliza ndi kupereka thandizo
+
+YANKHANI M'CHICHEWA (osati kumasulira, koma kulemba mwachibadwa):"""
+        else:
+            # English answer generation (existing logic)
+            answer_prompt = f"""You are a friendly, knowledgeable bank assistant helping customers understand banking products and services.
 
 Context from our product documentation:
 {context}
@@ -288,6 +343,7 @@ Customer's Question: {english_query}
 
 Instructions:
 - Provide a warm, conversational answer based on the context
+- Start naturally - you can skip "Hello" and go straight to answering, OR use casual starts like "Sure," "Great question," "Thanks for asking,"
 - Be specific and include relevant details from the documents
 - Use a friendly, helpful tone (not robotic or overly formal)
 - If information is incomplete, acknowledge what you know and what you don't
@@ -307,7 +363,10 @@ Answer:"""
         
         except Exception as e:
             print(f"Answer generation error: {e}")
-            return "I encountered an error generating the answer.", sources
+            if target_language == "chichewa":
+                return "Ndinakumana ndi vuto powopsa yankho.", sources
+            else:
+                return "I encountered an error generating the answer.", sources
     
     def answer_query(
         self,
@@ -373,28 +432,20 @@ Answer:"""
                 "detected_language": detected_language
             }
         
-        else:  # product inquiry, comparison, procedure, or general info
+        else:  # product inquiry, comparison, procedure, contact, or general info
             # Step 4: Retrieve relevant documents
             print("   [4] Retrieving relevant documents...")
             retrieved_docs = self.retrieve_documents(english_query)
             print(f"   → Retrieved {len(retrieved_docs)} documents")
             
-            # Step 5: Generate answer in English
-            print("   [5] Generating answer...")
-            english_answer, sources = self.generate_answer(
+            # Step 5: Generate answer DIRECTLY in target language (no translation)
+            print(f"   [5] Generating answer directly in {detected_language}...")
+            final_answer, sources = self.generate_answer(
                 english_query, 
                 retrieved_docs, 
-                language=detected_language
+                target_language=detected_language
             )
-            print(f"   → English answer: {english_answer[:100]}...")
-            
-            # Step 6: Translate answer if needed
-            if detected_language == "chichewa":
-                print("   [6] Translating answer to Chichewa...")
-                final_answer = self.translator.translate_to_chichewa(english_answer)
-            else:
-                print("   [6] Keeping answer in English")
-                final_answer = english_answer
+            print(f"   → Answer ({detected_language}): {final_answer[:100]}...")
             
             result = {
                 "answer": final_answer,
@@ -406,7 +457,6 @@ Answer:"""
             
             if return_metadata:
                 result.update({
-                    "english_answer": english_answer,
                     "retrieved_docs": retrieved_docs
                 })
             
